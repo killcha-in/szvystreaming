@@ -86,14 +86,10 @@ h1 {
 
 .media-item {
     background-color: #222;
-    padding: 1rem;
+    padding: 16px;
     border-radius: 10px;
     text-align: center;
     transition: transform 0.2s;
-}
-
-.movies-list:only-child .media-item {
-    transform: none;
 }
 
 .media-item:hover {

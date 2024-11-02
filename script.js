@@ -19,7 +19,7 @@ async function fetchMedia(mediaType, query) {
         const data = await response.json();
 
         if (data.total_results > 0) {
-            displayMedia(data.results);
+            displayMedia(mediaType, data.results);
         } else {
             alert("No results found, try searching something different.");
         }
@@ -28,7 +28,7 @@ async function fetchMedia(mediaType, query) {
     }
 }
 
-function displayMedia(media) {
+function displayMedia(mediaType, media) {
     const moviesList = document.getElementById('moviesList');
     moviesList.innerHTML = '';
 
@@ -45,29 +45,51 @@ function displayMedia(media) {
             <p>Rating: ${item.vote_average}</p>
             <label for="sourceSelect-${item.id}">Watch from:</label>
             <select id="sourceSelect-${item.id}" class="source-select">
-                <option value="vidsrc.pro">vidsrc.pro</option>
-                <option value="vidsrc.rip">vidsrc.rip (no ads)</option>
-                <option value="superembed">superembed</option>
-                <option value="vidlink">vidlink (no ads)</option>
-                <option value="vidbinge">vidbinge</option>
-                <option value="vidsrc.vip">vidsrc.vip</option>
-                <option value="moviesclub">moviesclub</option>
-                <option value="vidsrc.icu">vidsrc.icu</option>
-                <option value="vidsrc.nl">vidsrc.nl (no ads)</option>
-                <option value="vidsrc.cc">vidsrc.cc</option>
-                <option value="2embed">2embed</option>
-                <option value="autoembed">autoembed</option>
-                <option value="vidsrc.xyz">vidsrc.xyz</option>
+                ${getSourceOptions(mediaType)}
             </select>
-            <button class="watch-button" onclick="openSource('${item.id}')">Watch</button>
+            <button class="watch-button" onclick="openSource('${mediaType}', '${item.id}')">Watch</button>
         `;
 
         moviesList.appendChild(itemDiv);
     });
 }
 
-function openSource(id) {
+function getSourceOptions(mediaType) {
+    const movieSources = [
+        { value: 'https://vidsrc.pro/embed/movie/', label: 'vidsrc.pro' },
+        { value: 'https://embed.su/embed/movie/', label: 'embed.su' },
+        { value: 'https://multiembed.mov/?tmdb=1&video_id=', label: 'multiembed' },
+        { value: 'https://vidlink.pro/movie/', label: 'vidlink' },
+        { value: 'https://vidbinge.dev/embed/movie/', label: 'vidbinge' },
+        { value: 'https://vidsrc.vip/embed/movie/', label: 'vidsrc.vip' },
+        { value: 'https://moviesapi.club/movie/', label: 'moviesapi.club' },
+        { value: 'https://vidsrc.icu/embed/movie/', label: 'vidsrc.icu' },
+        { value: 'https://player.vidsrc.nl/embed/movie/', label: 'vidsrc.nl' },
+        { value: 'https://vidsrc.cc/v2/embed/movie/', label: 'vidsrc.cc' },
+        { value: 'https://www.2embed.cc/embed/', label: '2embed' },
+        { value: 'https://player.autoembed.cc/embed/movie/', label: 'autoembed' }
+    ];
+
+    const tvSources = [
+        { value: 'tvsrc.net', label: 'tvsrc.net' },
+        // hey so like this doesnt work yet, im working on it tho. sorry :3
+    ];
+
+    const sources = mediaType === 'tv' ? tvSources : movieSources;
+
+    return sources.map(source => `<option value="${source.value}">${source.label}</option>`).join('');
+}
+
+function openSource(mediaType, id) {
     const selectedSource = document.getElementById(`sourceSelect-${id}`).value;
-    const watchUrl = `https://${selectedSource}/embed/${id}`;
+    let watchUrl;
+
+    if (mediaType === 'tv') {
+        const tvSources = selectedSource;
+        watchUrl = `${tvSources}${id}`;
+    } else {
+        watchUrl = `${selectedSource}${id}`;
+    }
+
     window.open(watchUrl, '_blank');
 }
