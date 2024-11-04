@@ -38,6 +38,18 @@ function displayMedia(mediaType, media) {
 
         const posterPath = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : 'placeholder_image_url.jpg';
 
+        // Create season and episode dropdowns for TV shows
+        const seasonDropdown = mediaType === 'tv' ? `
+            <label for="seasonSelect-${item.id}">Season:</label>
+            <select id="seasonSelect-${item.id}" class="season-select">
+                <!-- Seasons will be dynamically loaded here -->
+            </select>
+            <label for="episodeSelect-${item.id}">Episode:</label>
+            <select id="episodeSelect-${item.id}" class="episode-select">
+                <!-- Episodes will be dynamically loaded here -->
+            </select>
+        ` : '';
+
         itemDiv.innerHTML = `
             <img src="${posterPath}" alt="${item.title || item.name}">
             <h2>${item.title || item.name}</h2>
@@ -47,11 +59,76 @@ function displayMedia(mediaType, media) {
             <select id="sourceSelect-${item.id}" class="source-select">
                 ${getSourceOptions(mediaType)}
             </select>
+            ${seasonDropdown}  <!-- Only for TV shows -->
             <button class="watch-button" onclick="openSource('${mediaType}', '${item.id}')">Watch</button>
         `;
 
         moviesList.appendChild(itemDiv);
+
+        // If the media type is 'tv', load season data
+        if (mediaType === 'tv') {
+            fetchSeasons(item.id); // Fetch seasons for TV shows
+        }
     });
+}
+
+async function fetchSeasons(tvShowId) {
+    const apiKey = '22e40eda03c997570e3dbc0c3a30edbc';
+    const seasonURL = `https://api.themoviedb.org/3/tv/${tvShowId}?api_key=${apiKey}`;
+
+    try {
+        const response = await fetch(seasonURL);
+        const data = await response.json();
+
+        const seasonSelect = document.getElementById(`seasonSelect-${tvShowId}`);
+        const episodeSelect = document.getElementById(`episodeSelect-${tvShowId}`);
+
+        // Populate season dropdown
+        data.seasons.forEach(season => {
+            const option = document.createElement('option');
+            option.value = season.season_number;
+            option.textContent = `Season ${season.season_number}`;
+            seasonSelect.appendChild(option);
+        });
+
+        // Load episodes for the first season by default
+        if (data.seasons.length > 0) {
+            fetchEpisodes(tvShowId, data.seasons[0].season_number);
+        }
+
+        // Update episodes when a season is selected
+        seasonSelect.addEventListener('change', function () {
+            const selectedSeason = seasonSelect.value;
+            fetchEpisodes(tvShowId, selectedSeason);
+        });
+
+    } catch (error) {
+        console.error("Error fetching seasons:", error);
+    }
+}
+
+async function fetchEpisodes(tvShowId, seasonNumber) {
+    const apiKey = '22e40eda03c997570e3dbc0c3a30edbc';
+    const episodeURL = `https://api.themoviedb.org/3/tv/${tvShowId}/season/${seasonNumber}?api_key=${apiKey}`;
+
+    try {
+        const response = await fetch(episodeURL);
+        const data = await response.json();
+
+        const episodeSelect = document.getElementById(`episodeSelect-${tvShowId}`);
+        episodeSelect.innerHTML = '';
+
+        // Populate episode dropdown
+        data.episodes.forEach(episode => {
+            const option = document.createElement('option');
+            option.value = episode.episode_number;
+            option.textContent = `Episode ${episode.episode_number}`;
+            episodeSelect.appendChild(option);
+        });
+
+    } catch (error) {
+        console.error("Error fetching episodes:", error);
+    }
 }
 
 function getSourceOptions(mediaType) {
@@ -71,8 +148,18 @@ function getSourceOptions(mediaType) {
     ];
 
     const tvSources = [
-        { value: 'tvsrc.net', label: 'tvsrc.net' },
-        // hey so like this doesnt work yet, im working on it tho. sorry :3
+        { value: 'https://vidsrc.pro/embed/tv/', label: 'vidsrc.pro' },
+        { value: 'https://embed.su/embed/tv/', label: 'embed.su' },
+        { value: 'https://multiembed.mov/?tmdb=1&video_id=', label: 'multiembed' },
+        { value: 'https://vidlink.pro/movie/', label: 'vidlink' },
+        { value: 'https://vidbinge.dev/embed/movie/', label: 'vidbinge' },
+        { value: 'https://vidsrc.vip/embed/movie/', label: 'vidsrc.vip' },
+        { value: 'https://moviesapi.club/movie/', label: 'moviesapi.club' },
+        { value: 'https://vidsrc.icu/embed/movie/', label: 'vidsrc.icu' },
+        { value: 'https://player.vidsrc.nl/embed/movie/', label: 'vidsrc.nl' },
+        { value: 'https://vidsrc.cc/v2/embed/movie/', label: 'vidsrc.cc' },
+        { value: 'https://www.2embed.cc/embed/', label: '2embed' },
+        { value: 'https://player.autoembed.cc/embed/movie/', label: 'autoembed' }
     ];
 
     const sources = mediaType === 'tv' ? tvSources : movieSources;
@@ -82,13 +169,18 @@ function getSourceOptions(mediaType) {
 
 function openSource(mediaType, id) {
     const selectedSource = document.getElementById(`sourceSelect-${id}`).value;
+    const season = document.getElementById(`seasonSelect-${id}`).value;
+    const episode = document.getElementById(`episodeSelect-${id}`).value;
     let watchUrl;
 
-    if (mediaType === 'tv') {
-        const tvSources = selectedSource;
-        watchUrl = `${tvSources}${id}`;
+    if (selectedSource === 'multiembed' && mediaType === 'tv') {
+        watchUrl = `https://multiembed.mov/?tmdb=1&video_id=${id}&s=${season}&e=${episode}`;
     } else {
-        watchUrl = `${selectedSource}${id}`;
+        if (mediaType === 'tv') {
+            watchUrl = `${selectedSource}${id}/${season}/${episode}`;
+        } else {
+            watchUrl = `${selectedSource}${id}`;
+        }
     }
 
     window.open(watchUrl, '_blank');
